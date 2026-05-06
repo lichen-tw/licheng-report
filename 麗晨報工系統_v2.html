@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="麗晨報工">
+<meta name="theme-color" content="#1a56a0">
+<title>麗晨企業廠 · 報工系統</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f4fb;min-height:100vh}
+input,select,textarea{font-family:inherit;font-size:14px;color:#1a1a1a;background:#fff;border:1px solid #d1d5db;border-radius:8px;padding:8px 10px;width:100%;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:#1a56a0;box-shadow:0 0 0 3px rgba(26,86,160,.12)}
+.btn{padding:9px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;border:none}
+.btn-p{background:#1a56a0;color:#fff}.btn-p:active{background:#154280}
+.btn-g{background:#fff;color:#6b7280;border:1px solid #d1d5db}
+.btn-dsm{background:transparent;color:#b91c1c;border:1px solid #fca5a5;font-size:11px;padding:3px 8px;border-radius:6px;cursor:pointer}
+.btn-ok{background:#15803d;color:#fff;font-size:11px;padding:3px 9px;border-radius:6px;border:none;cursor:pointer}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:1rem 1.25rem}
+.bdg{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.b-bl{color:#1e3a8a;background:#dbeafe}.b-gr{color:#166534;background:#dcfce7}
+.b-am{color:#78350f;background:#fef3c7}.b-gy{color:#374151;background:#f3f4f6}.b-pu{color:#6b21a8;background:#f3e8ff}
+.pill{display:inline-flex;align-items:center;font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500;white-space:nowrap}
+.p-a{background:#dbeafe;color:#1e3a8a}.p-w{background:#fef3c7;color:#78350f}
+.p-l{background:#f3e8ff;color:#6b21a8}.p-t{background:#f0fdf4;color:#166534}.p-o{background:#f3f4f6;color:#374151}
+.sb{width:118px;min-height:100vh;border-right:1px solid #e5e7eb;background:#f9fafb;flex-shrink:0;padding:8px 0}
+.mi{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:#6b7280;border-left:3px solid transparent;user-select:none}
+.mi:hover{background:#fff}.mi.on{background:#fff;color:#1a56a0;font-weight:600;border-left-color:#1a56a0}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{padding:7px 8px;text-align:left;font-weight:600;color:#6b7280;border-bottom:1px solid #e5e7eb;white-space:nowrap;background:#f9fafb}
+.tbl td{padding:7px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+/* 師傅手機版 */
+.ww{max-width:460px;margin:0 auto;padding:16px}
+.bsel{font-size:15px;padding:12px;border-radius:10px;border:1.5px solid #d1d5db;width:100%;background:#fff;-webkit-appearance:none}
+.bsel:focus{border-color:#1a56a0;box-shadow:0 0 0 3px rgba(26,86,160,.12)}
+.bbtn{width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:12px;border:none;cursor:pointer;background:#1a56a0;color:#fff}
+.bbtn:active{background:#154280}
+.bbtn:disabled{background:#93c5fd;cursor:not-allowed}
+/* 多筆報工列 */
+.log-row{display:grid;grid-template-columns:1fr 80px auto;gap:8px;align-items:center;padding:10px 12px;background:#f9fafb;border-radius:10px;margin-bottom:8px;border:1px solid #e5e7eb}
+.log-row select{font-size:13px;padding:7px 8px}
+.log-row input{font-size:14px;padding:7px 8px;text-align:center;font-weight:600}
+.add-row-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed #93c5fd;border-radius:10px;background:#f0f7ff;color:#1a56a0;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:12px}
+.mrow{padding:12px 14px;border-radius:10px;background:#f9fafb;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.lbl{font-size:12px;color:#6b7280;margin-bottom:4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.spin{text-align:center;padding:2.5rem;color:#9ca3af;font-size:13px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;pointer-events:none;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.cb{border-radius:8px;padding:.85rem 1rem;flex:1;min-width:80px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbzvVCiRdpnPKH3cgP98gkdoAeeErrJRNpSHkZDs7GUxPWVmg-Yk1nvrzb8pwKXIu0LyJw/exec';
+
+// ── API ───────────────────────────────────────────────────────
+async function gas(action, body) {
+  var res = await fetch(GAS_URL, {
+    method:'POST', body:JSON.stringify(Object.assign({action:action},body||{})),
+    headers:{'Content-Type':'text/plain'}
+  });
+  var data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// ── 工具 ─────────────────────────────────────────────────────
+function today(){var d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
+function p2(n){return n<10?'0'+n:String(n);}
+function ym(){return today().slice(0,7);}
+function toast(msg,ms){
+  ms=ms||2500;var el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(function(){el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(function(){el.remove();},300);},ms);
+}
+function $id(id){return document.getElementById(id);}
+var TP={組裝:'p-a',焊接:'p-w',車床:'p-l'};
+var CP={一般:'p-a',外出:'p-o',請假:'p-o'};
+
+// ── 狀態 ─────────────────────────────────────────────────────
+var S={page:'login',user:null,fJob:'',fWorker:''};
+var C={jobs:null,workers:null};
+
+function getUser(){try{return JSON.parse(localStorage.getItem('lc_u')||'null');}catch{return null;}}
+function saveUser(u){localStorage.setItem('lc_u',JSON.stringify(u));}
+function clearUser(){localStorage.removeItem('lc_u');}
+
+async function cJobs(inprog){
+  if(!C.jobs) C.jobs=(await gas('getJobs',{})).data;
+  return inprog?C.jobs.filter(function(j){return j.status==='進行中';}):C.jobs;
+}
+async function cWorkers(){
+  if(!C.workers) C.workers=(await gas('getWorkers',{})).data;
+  return C.workers;
+}
+function bust(){C.jobs=null;C.workers=null;}
+
+// ── 渲染 ─────────────────────────────────────────────────────
+function render(page,params){
+  if(page) S.page=page;
+  if(params) Object.assign(S,params);
+  var root=$id('root');root.innerHTML='';
+  if(!S.user){root.innerHTML=renderLogin();return;}
+  if(S.user.role==='worker') root.innerHTML=renderWorkerShell();
+  else root.innerHTML=renderMgrShell();
+  loadPage();
+}
+
+// ── 登入 ─────────────────────────────────────────────────────
+function renderLogin(){
+  return '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#e8eef8;padding:16px">'
+    +'<div class="card" style="width:100%;max-width:320px;padding:2rem">'
+    +'<div style="text-align:center;margin-bottom:1.5rem">'
+    +'<div style="width:52px;height:52px;background:#1a56a0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin:0 auto 10px">麗</div>'
+    +'<div style="font-size:17px;font-weight:700">麗晨企業廠</div>'
+    +'<div style="font-size:12px;color:#9ca3af;margin-top:2px">工時報工系統</div>'
+    +'</div>'
+    +'<div style="margin-bottom:10px"><div class="lbl">身份</div>'
+    +'<div style="display:flex;gap:6px">'
+    +[['worker','師傅'],['admin','生管'],['boss','老闆']].map(function(r){
+      return '<button id="rb-'+r[0]+'" onclick="setLR(\''+r[0]+'\')" class="btn btn-g" style="flex:1;font-size:13px;padding:8px 4px">'+r[1]+'</button>';
+    }).join('')+'</div></div>'
+    +'<div id="lhint" style="font-size:11px;color:#9ca3af;margin-bottom:12px;padding:6px 10px;background:#f9fafb;border-radius:6px">請選擇身份</div>'
+    +'<div style="margin-bottom:10px"><div class="lbl">帳號</div><input id="lu" placeholder="帳號" autocomplete="username"></div>'
+    +'<div style="margin-bottom:16px"><div class="lbl">密碼</div><input id="lp" type="password" placeholder="密碼" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')doLogin()"></div>'
+    +'<button class="btn btn-p" style="width:100%;padding:12px;font-size:15px" onclick="doLogin()">登入</button>'
+    +'<div id="lerr" style="color:#b91c1c;font-size:12px;margin-top:8px;text-align:center;min-height:16px"></div>'
+    +'</div></div>';
+}
+
+var LR='worker';
+function setLR(r){
+  LR=r;
+  var hints={worker:'師傅：選機號填工時，支援一次報多筆',admin:'生管：代填報工、審核、機號管理',boss:'老闆：查詢各機號工時成本'};
+  var h=$id('lhint');if(h)h.textContent=hints[r];
+  ['worker','admin','boss'].forEach(function(k){
+    var el=$id('rb-'+k);if(!el)return;
+    var s=k===r;el.style.borderColor=s?'#1a56a0':'#d1d5db';el.style.color=s?'#1a56a0':'#6b7280';
+    el.style.fontWeight=s?'600':'400';el.style.background=s?'#dbeafe':'#fff';
+  });
+}
+
+async function doLogin(){
+  var id=($id('lu').value||'').trim(),pw=($id('lp').value||'').trim(),err=$id('lerr');
+  if(!id||!pw){err.textContent='請填寫帳號與密碼';return;}
+  err.textContent='登入中...';
+  try{
+    var d=await gas('login',{id:id,password:pw});
+    if(d.user.role!==LR){err.textContent='帳號身份不符';return;}
+    S.user=d.user;saveUser(d.user);
+    S.page=d.user.role==='worker'?'w-report':(d.user.role==='boss'?'cost':'logs');
+    bust();render();
+  }catch(e){err.textContent=e.message;}
+}
+function doLogout(){clearUser();S.user=null;S.page='login';bust();render();}
+
+// ── 師傅 Shell ───────────────────────────────────────────────
+function renderWorkerShell(){
+  return '<div style="max-width:460px;margin:0 auto;min-height:100vh;background:#fff">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e5e7eb;background:#fff;position:sticky;top:0;z-index:10">'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<div style="width:28px;height:28px;background:#1a56a0;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:12px">麗</div>'
+    +'<div><div style="font-size:14px;font-weight:700">'+S.user.name+'</div>'
+    +'<div style="font-size:11px;color:#9ca3af">'+S.user.work_type+'　'+today()+'</div></div>'
+    +'</div><button class="btn btn-g" style="font-size:12px;padding:5px 10px" onclick="doLogout()">登出</button></div>'
+    +'<div style="display:flex;border-bottom:1px solid #e5e7eb">'
+    +[['w-report','今日報工'],['w-history','我的記錄']].map(function(t){
+      var on=S.page===t[0];
+      return '<div onclick="render(\''+t[0]+'\')" style="flex:1;text-align:center;padding:11px;font-size:13px;cursor:pointer;'
+        +'border-bottom:2px solid '+(on?'#1a56a0':'transparent')+';color:'+(on?'#1a56a0':'#6b7280')+';font-weight:'+(on?'600':'400')+'">'+t[1]+'</div>';
+    }).join('')+'</div>'
+    +'<div class="ww" id="wc"><div class="spin">載入中...</div></div></div>';
+}
+
+// ── 生管/老闆 Shell ───────────────────────────────────────────
+function renderMgrShell(){
+  var role=S.user.role;
+  var nav=role==='boss'
+    ?[['cost','▣','成本查詢'],['jobs','□','機號總覽']]
+    :[['logs','≡','報工記錄'],['approve','✓','待審核'],['report-mgr','＋','代填報工'],
+      ['jobs','□','機號管理'],['workers','♦','師傅名單'],['cost','▣','成本查詢']];
+  return '<div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid #e5e7eb;background:#fff;position:sticky;top:0;z-index:10">'
+    +'<div style="display:flex;align-items:center;gap:10px">'
+    +'<div style="width:28px;height:28px;background:#1a56a0;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:12px">麗</div>'
+    +'<div style="font-size:13px;font-weight:600">麗晨企業廠 · 工時報工</div></div>'
+    +'<div style="display:flex;align-items:center;gap:8px">'
+    +'<span class="bdg '+(role==='boss'?'b-pu':'b-bl')+'">'+S.user.name+'</span>'
+    +'<button class="btn btn-g" style="font-size:12px;padding:4px 10px" onclick="doLogout()">登出</button>'
+    +'</div></div>'
+    +'<div style="display:flex"><div class="sb">'
+    +nav.map(function(n){return '<div class="mi'+(S.page===n[0]?' on':'')+'" onclick="render(\''+n[0]+'\')"><span style="font-size:11px;width:14px;flex-shrink:0">'+n[1]+'</span>'+n[2]+'</div>';}).join('')
+    +'</div><div style="flex:1;padding:16px;min-width:0" id="mc"><div class="spin">載入中...</div></div></div></div>';
+}
+
+// ── loadPage ─────────────────────────────────────────────────
+async function loadPage(){
+  var el=S.user.role==='worker'?$id('wc'):$id('mc');
+  if(!el)return;
+  el.innerHTML='<div class="spin">載入中...</div>';
+  try{
+    var html='';
+    if(S.page==='w-report')    html=await pageWReport();
+    else if(S.page==='w-history')  html=await pageWHistory();
+    else if(S.page==='logs')   html=await pageLogs();
+    else if(S.page==='approve')html=await pageApprove();
+    else if(S.page==='report-mgr') html=await pageReportMgr();
+    else if(S.page==='jobs')   html=await pageJobs();
+    else if(S.page==='workers')html=await pageWorkers();
+    else if(S.page==='cost')   html=await pageCost();
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div style="color:#b91c1c;padding:1rem">錯誤：'+e.message+'</div>';}
+}
+
+// ════════════════════════════════════════════════════════════════
+//  師傅：今日報工（多筆）
+// ════════════════════════════════════════════════════════════════
+var wRows=[{job_id:'',hours:8,category:'一般',note:''}];
+
+async function pageWReport(){
+  var myLogs=(await gas('getLogs',{worker_id:S.user.id,date_from:today(),date_to:today()})).data;
+  var todayH=myLogs.reduce(function(a,l){return a+l.hours;},0);
+  var jlist=await cJobs(true);
+  var jopts='<option value="">— 選機號 —</option>'+jlist.map(function(j){return '<option value="'+j.id+'">'+j.id+'　'+j.customer+'</option>';}).join('');
+
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">'
+    +'<div style="font-size:13px;font-weight:600">'+today()+'</div>'
+    +(todayH>0?'<span style="font-size:12px;color:#9ca3af">今日已報 <strong style="color:#1a56a0">'+todayH+'h</strong></span>':'')
+    +'</div>';
+
+  // 多筆報工區
+  h+='<div id="w-rows">';
+  wRows.forEach(function(r,i){
+    h+='<div class="log-row">'
+      +'<select class="bsel" style="font-size:13px;padding:8px" onchange="setWRow('+i+',\'job_id\',this.value)">'+jopts.replace('value="'+r.job_id+'"','value="'+r.job_id+'" selected')+'</select>'
+      +'<input type="number" value="'+r.hours+'" step="0.5" min="0.5" max="12" style="font-size:15px;font-weight:700;text-align:center;padding:8px" onchange="setWRow('+i+',\'hours\',parseFloat(this.value)||8)" placeholder="工時">'
+      +(wRows.length>1?'<button class="btn-dsm" onclick="removeWRow('+i+')">✕</button>':'<div style="width:36px"></div>')
+      +'</div>';
+  });
+  h+='</div>';
+
+  h+='<div class="add-row-btn" onclick="addWRow()" style="margin-bottom:16px">＋ 新增一筆（跨機號）</div>';
+
+  var totalH=wRows.reduce(function(a,r){return a+(parseFloat(r.hours)||0);},0);
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;padding:8px 12px;background:#f0f7ff;border-radius:8px">'
+    +'<span style="font-size:13px;color:#1a56a0">本次報工合計</span>'
+    +'<span style="font-size:20px;font-weight:700;color:#1a56a0">'+totalH+'h</span></div>';
+
+  h+='<div style="margin-bottom:12px"><div class="lbl">備註（選填，套用所有筆）</div><input type="text" id="wr-note" placeholder="如：試運轉、需求討論"></div>';
+
+  h+='<button class="bbtn" id="submit-btn" onclick="submitWReport()">送出報工</button>';
+
+  if(myLogs.length){
+    h+='<div style="margin-top:24px"><div style="font-size:12px;color:#9ca3af;margin-bottom:10px">今日已報</div>';
+    h+=myLogs.map(function(l){
+      return '<div class="mrow"><div>'
+        +'<div style="font-size:13px;font-weight:600">'+l.customer+'</div>'
+        +'<div style="font-size:11px;color:#9ca3af;margin-top:2px">'+l.category+(l.note?' · '+l.note:'')+'</div>'
+        +'</div><div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:18px;font-weight:700;color:#1a56a0">'+l.hours+'h</span>'
+        +'<span class="bdg '+(l.status==='approved'?'b-gr':'b-am')+'">'+(l.status==='approved'?'已核准':'待審核')+'</span>'
+        +'</div></div>';
+    }).join('')+'</div>';
+  }
+  return h;
+}
+
+function setWRow(i,key,val){wRows[i][key]=val;}
+function addWRow(){wRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
+function removeWRow(i){wRows.splice(i,1);if(!wRows.length)wRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
+
+async function submitWReport(){
+  var note=($id('wr-note')||{}).value||'';
+  // 同步目前 DOM 的值
+  document.querySelectorAll('#w-rows .log-row').forEach(function(row,i){
+    var sel=row.querySelector('select'),inp=row.querySelector('input');
+    if(sel) wRows[i].job_id=sel.value;
+    if(inp) wRows[i].hours=parseFloat(inp.value)||8;
+  });
+  var valid=wRows.filter(function(r){return r.job_id&&r.hours>0;});
+  if(!valid.length){toast('請至少選一個機號並填寫工時');return;}
+  var btn=$id('submit-btn');if(btn){btn.disabled=true;btn.textContent='送出中...';}
+  try{
+    var logs=valid.map(function(r){return {
+      date:today(),worker_id:S.user.id,job_id:r.job_id,
+      category:r.category||'一般',hours:r.hours,note:note,
+      submitted_by:S.user.id,submitted_by_role:'worker'
+    };});
+    var res=await gas('addLogs',{logs:logs});
+    if(res.errors&&res.errors.length) toast('部分失敗：'+res.errors.join('、'),4000);
+    else toast('✓ 報工已送出 '+res.count+' 筆！');
+    wRows=[{job_id:'',hours:8,category:'一般',note:''}];
+    loadPage();
+  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='送出報工';}}
+}
+
+// ── 師傅：我的記錄 ─────────────────────────────────────────────
+async function pageWHistory(){
+  var logs=(await gas('getLogs',{worker_id:S.user.id})).data;
+  var total=logs.reduce(function(a,l){return a+l.hours;},0);
+  return '<div style="font-size:12px;color:#9ca3af;margin-bottom:14px">共 '+logs.length+' 筆 · 累計 <strong style="color:#1a56a0">'+total+'h</strong></div>'
+    +(logs.map(function(l){
+      return '<div class="mrow"><div>'
+        +'<div style="font-size:12px;color:#9ca3af">'+l.date+'</div>'
+        +'<div style="font-size:13px;font-weight:600;margin-top:1px">'+l.customer+'</div>'
+        +'<div style="font-size:11px;color:#9ca3af">'+l.category+(l.note?' · '+l.note:'')+'</div>'
+        +'</div><div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+        +'<span style="font-size:16px;font-weight:700;color:#1a56a0">'+l.hours+'h</span>'
+        +'<span class="bdg '+(l.status==='approved'?'b-gr':'b-am')+'">'+(l.status==='approved'?'已核准':'待審核')+'</span>'
+        +'</div></div>';
+    }).join(''))||'<div style="text-align:center;padding:2rem;color:#9ca3af">尚無記錄</div>';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  生管：代填報工（也是多筆）
+// ════════════════════════════════════════════════════════════════
+var mRows=[{job_id:'',hours:8,category:'一般',note:''}];
+
+async function pageReportMgr(){
+  var wlist=await cWorkers(),jlist=await cJobs(true);
+  var wo=wlist.map(function(w){return '<option value="'+w.id+'">'+w.name+'（'+w.work_type+'）</option>';}).join('');
+  var jopts='<option value="">— 選機號 —</option>'+jlist.map(function(j){return '<option value="'+j.id+'">'+j.id+'　'+j.customer+'</option>';}).join('');
+
+  var rowsHtml=mRows.map(function(r,i){
+    return '<div class="log-row" style="grid-template-columns:1fr 80px 100px auto">'
+      +'<select style="font-size:13px" onchange="setMRow('+i+',\'job_id\',this.value)">'+jopts.replace('value="'+r.job_id+'"','value="'+r.job_id+'" selected')+'</select>'
+      +'<input type="number" value="'+r.hours+'" step="0.5" min="0.5" max="12" style="font-size:14px;font-weight:700;text-align:center" onchange="setMRow('+i+',\'hours\',parseFloat(this.value)||8)">'
+      +'<select style="font-size:12px" onchange="setMRow('+i+',\'category\',this.value)">'
+      +['一般','外出'].map(function(c){return '<option'+(r.category===c?' selected':'')+'>'+c+'</option>';}).join('')
+      +'</select>'
+      +(mRows.length>1?'<button class="btn-dsm" onclick="removeMRow('+i+')">✕</button>':'<div style="width:36px"></div>')
+      +'</div>';
+  }).join('');
+
+  var totalH=mRows.reduce(function(a,r){return a+(parseFloat(r.hours)||0);},0);
+
+  return '<div style="font-size:15px;font-weight:700;margin-bottom:14px">代填報工</div>'
+    +'<div class="card">'
+    +'<div class="g2" style="margin-bottom:14px">'
+    +'<div><div class="lbl">日期</div><input type="date" id="m-date" value="'+today()+'"></div>'
+    +'<div><div class="lbl">師傅</div><select id="m-worker">'+wo+'</select></div>'
+    +'</div>'
+    +'<div style="font-size:12px;color:#6b7280;margin-bottom:8px;font-weight:500">工時明細　<span style="font-weight:400;color:#9ca3af">（機號 / 工時 / 類別）</span></div>'
+    +'<div id="m-rows">'+rowsHtml+'</div>'
+    +'<div class="add-row-btn" onclick="addMRow()">＋ 新增一筆（跨機號）</div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 12px;background:#f0f7ff;border-radius:8px">'
+    +'<span style="font-size:13px;color:#1a56a0">合計</span>'
+    +'<span style="font-size:18px;font-weight:700;color:#1a56a0">'+totalH+'h</span></div>'
+    +'<div style="margin-bottom:12px"><div class="lbl">備註（選填）</div><input type="text" id="m-note" placeholder="如：調機、等料"></div>'
+    +'<button class="btn btn-p" style="width:100%;padding:12px" id="m-submit" onclick="submitMgr()">確認送出</button>'
+    +'</div>';
+}
+
+function setMRow(i,key,val){mRows[i][key]=val;}
+function addMRow(){mRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
+function removeMRow(i){mRows.splice(i,1);if(!mRows.length)mRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
+
+async function submitMgr(){
+  var date=$id('m-date').value,wid=$id('m-worker').value,note=($id('m-note')||{}).value||'';
+  // 同步 DOM
+  document.querySelectorAll('#m-rows .log-row').forEach(function(row,i){
+    var sels=row.querySelectorAll('select'),inp=row.querySelector('input[type="number"]');
+    if(sels[0]) mRows[i].job_id=sels[0].value;
+    if(inp) mRows[i].hours=parseFloat(inp.value)||8;
+    if(sels[1]) mRows[i].category=sels[1].value;
+  });
+  var valid=mRows.filter(function(r){return r.job_id&&r.hours>0;});
+  if(!valid.length){toast('請至少選一個機號並填寫工時');return;}
+  var btn=$id('m-submit');if(btn){btn.disabled=true;btn.textContent='送出中...';}
+  try{
+    var logs=valid.map(function(r){return {
+      date:date,worker_id:wid,job_id:r.job_id,
+      category:r.category,hours:r.hours,note:note,
+      submitted_by:S.user.id,submitted_by_role:'admin'
+    };});
+    var res=await gas('addLogs',{logs:logs});
+    if(res.errors&&res.errors.length) toast('部分失敗：'+res.errors.join('、'),4000);
+    else toast('✓ 已送出 '+res.count+' 筆工時');
+    mRows=[{job_id:'',hours:8,category:'一般',note:''}];
+    render('logs');
+  }catch(e){toast('❌ '+e.message);if(btn){btn.disabled=false;btn.textContent='確認送出';}}
+}
+
+// ── 報工記錄 ─────────────────────────────────────────────────
+async function pageLogs(){
+  var wlist=await cWorkers(),jlist=await cJobs();
+  var q={};if(S.fWorker)q.worker_id=S.fWorker;if(S.fJob)q.job_id=S.fJob;
+  var logList=(await gas('getLogs',q)).data;
+  var wo='<option value="">全部師傅</option>'+wlist.map(function(w){return '<option value="'+w.id+'"'+(S.fWorker===w.id?' selected':'')+'>'+w.name+'</option>';}).join('');
+  var jo='<option value="">全部機號</option>'+jlist.map(function(j){return '<option value="'+j.id+'"'+(S.fJob===j.id?' selected':'')+'>'+j.id+' '+j.customer+'</option>';}).join('');
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    +'<div style="font-size:15px;font-weight:700">報工記錄</div>'
+    +'<button class="btn btn-p" onclick="render(\'report-mgr\')">＋ 代填報工</button></div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<select style="font-size:12px;padding:4px 8px;width:auto" id="fw" onchange="doF()">'+wo+'</select>'
+    +'<select style="font-size:12px;padding:4px 8px;width:auto" id="fj" onchange="doF()">'+jo+'</select>'
+    +(S.fWorker||S.fJob?'<button class="btn btn-g" style="font-size:12px;padding:4px 10px" onclick="clearF()">清除</button>':'')
+    +'</div>'
+    +'<div class="card"><div style="overflow:auto">'+logTbl(logList,false)+'</div></div>';
+}
+function doF(){S.fWorker=($id('fw')||{}).value||'';S.fJob=($id('fj')||{}).value||'';render('logs');}
+function clearF(){S.fWorker='';S.fJob='';render('logs');}
+async function delLog(id){
+  if(!confirm('確定刪除？'))return;
+  try{await gas('deleteLog',{id:id});toast('✓ 已刪除');render('logs');}catch(e){toast('❌ '+e.message);}
+}
+
+// ── 待審核 ────────────────────────────────────────────────────
+async function pageApprove(){
+  var all=(await gas('getLogs',{})).data;
+  var pend=all.filter(function(l){return l.status==='pending';});
+  var done=all.filter(function(l){return l.status==='approved';}).slice(0,8);
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div style="font-size:15px;font-weight:700">待審核（'+pend.length+'）</div>'
+    +(pend.length?'<button class="btn-ok" style="padding:6px 14px;font-size:12px" onclick="approveAll()">全部核准</button>':'')
+    +'</div>'
+    +(pend.length?'<div class="card" style="margin-bottom:16px"><div style="overflow:auto">'+logTbl(pend,true)+'</div></div>'
+      :'<div class="card" style="text-align:center;padding:2rem;color:#9ca3af">目前無待審核 ✓</div>')
+    +'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">最近已核准</div>'
+    +'<div class="card"><div style="overflow:auto">'+logTbl(done,false)+'</div></div>';
+}
+async function approveOne(id){try{await gas('approveLog',{id:id});toast('✓ 已核准');render('approve');}catch(e){toast('❌ '+e.message);}}
+async function approveAll(){try{var r=await gas('approveAll',{});toast('✓ 已核准 '+r.count+' 筆');render('approve');}catch(e){toast('❌ '+e.message);}}
+
+// ── 機號管理 ──────────────────────────────────────────────────
+async function pageJobs(){
+  var jl=await cJobs(),canEdit=S.user.role==='admin';
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div style="font-size:15px;font-weight:700">機號'+(canEdit?'管理':'總覽')+'</div>'
+    +(canEdit?'<button class="btn btn-p" onclick="addJob()">＋ 新增機號</button>':'')
+    +'</div><div style="display:grid;gap:8px">'
+    +jl.map(function(j){
+      var sc=j.status==='進行中'?'b-bl':'b-gr';
+      return '<div class="card"><div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">'
+        +'<div><div style="font-size:14px;font-weight:700;color:#1a56a0;cursor:pointer" onclick="viewCost(\''+j.id+'\')">'+j.id+'</div>'
+        +'<div style="font-size:12px;color:#9ca3af;margin-top:2px">'+j.customer+(j.description?'　'+j.description:'')+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px"><span class="bdg '+sc+'">'+j.status+'</span>'
+        +(canEdit&&j.status==='進行中'?'<button class="btn-ok" onclick="closeJob(\''+j.id+'\')">結案</button>':'')
+        +'</div></div>'
+        +'<button onclick="viewCost(\''+j.id+'\')" style="font-size:11px;padding:3px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;cursor:pointer;color:#1a56a0">查看工時 →</button>'
+        +'</div>';
+    }).join('')+'</div>';
+}
+
+function viewCost(id){S.fJob=id;render('cost');}
+async function addJob(){
+  var id=prompt('機號（格式 YYMMDD-NN，如 250506-01）：');if(!id)return;
+  var customer=prompt('客戶名稱（如：熠承科技）：');if(!customer)return;
+  var desc=prompt('機台說明（選填）：')||'';
+  try{await gas('addJob',{id:id.trim(),customer:customer.trim(),description:desc});toast('✓ 機號已新增');bust();render('jobs');}
+  catch(e){toast('❌ '+e.message);}
+}
+async function closeJob(id){
+  if(!confirm('確定結案 '+id+'？'))return;
+  try{await gas('closeJob',{id:id});toast('✓ 已結案');bust();render('jobs');}catch(e){toast('❌ '+e.message);}
+}
+
+// ── 師傅名單 ──────────────────────────────────────────────────
+async function pageWorkers(){
+  var wl=await cWorkers();
+  return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    +'<div style="font-size:15px;font-weight:700">師傅名單</div>'
+    +'<button class="btn btn-p" onclick="addWorker()">＋ 新增師傅</button></div>'
+    +'<div class="card"><div style="overflow:auto"><table class="tbl"><thead><tr><th>帳號</th><th>姓名</th><th>工種</th><th>本月工時</th><th>操作</th></tr></thead><tbody>'
+    +wl.map(function(w){
+      return '<tr><td style="font-family:monospace;font-size:11px;color:#1a56a0">'+w.id+'</td>'
+        +'<td style="font-weight:600">'+w.name+'</td>'
+        +'<td><span class="pill '+(TP[w.work_type]||'p-a')+'">'+w.work_type+'</span></td>'
+        +'<td style="font-weight:600">'+w.month_hours+'h</td>'
+        +'<td><button class="btn-dsm" onclick="resetPw(\''+w.id+'\',\''+w.name+'\')">改密碼</button></td></tr>';
+    }).join('')+'</tbody></table></div></div>'
+    +'<div style="font-size:12px;color:#9ca3af;margin-top:10px;padding:10px 12px;background:#f9fafb;border-radius:8px">帳號密碼也可以直接在 Google 試算表「帳號」工作表修改</div>';
+}
+async function addWorker(){
+  var name=prompt('師傅姓名（如：陳師傅）：');if(!name)return;
+  var type=prompt('工種（組裝 / 焊接 / 車床）：');
+  if(!type||!['組裝','焊接','車床'].includes(type)){toast('工種請輸入：組裝、焊接 或 車床');return;}
+  var pw=prompt('初始密碼（建議手機末四碼）：');if(!pw)return;
+  try{var r=await gas('addWorker',{name:name,work_type:type,password:pw});toast('✓ 已新增，帳號：'+r.id);bust();render('workers');}
+  catch(e){toast('❌ '+e.message);}
+}
+async function resetPw(id,name){
+  var pw=prompt(name+' 的新密碼：');if(!pw)return;
+  try{await gas('resetPw',{id:id,password:pw});toast('✓ 密碼已更新');}catch(e){toast('❌ '+e.message);}
+}
+
+// ── 成本查詢 ──────────────────────────────────────────────────
+async function pageCost(){
+  var jl=await cJobs();
+  var jo='<option value="">— 請選擇機號 —</option>'+jl.map(function(j){return '<option value="'+j.id+'"'+(S.fJob===j.id?' selected':'')+'>'+j.id+'　'+j.customer+'</option>';}).join('');
+  var detail='<div style="text-align:center;padding:2rem;color:#9ca3af">請選擇機號</div>';
+  if(S.fJob){
+    try{
+      var d=await gas('getCost',{job_id:S.fJob});
+      var s=d.summary;
+      var boxes=[{l:'組裝工時',v:s.asm,bg:'#dbeafe',tc:'#1e3a8a'},{l:'焊接工時',v:s.weld,bg:'#fef3c7',tc:'#78350f'},{l:'車床工時',v:s.lathe,bg:'#f3e8ff',tc:'#6b21a8'},{l:'合計工時',v:s.total,bg:'#f0fdf4',tc:'#166534'}]
+        .map(function(b){return '<div class="cb" style="background:'+b.bg+'"><div style="font-size:11px;color:'+b.tc+';margin-bottom:4px">'+b.l+'</div><div style="font-size:24px;font-weight:700;color:'+b.tc+'">'+b.v+'h</div></div>';}).join('');
+      var lr=d.logs.map(function(l){return '<tr><td style="white-space:nowrap">'+l.date+'</td><td style="font-weight:600">'+l.worker_name+'</td><td><span class="pill '+(TP[l.work_type]||'p-a')+'">'+l.work_type+'</span></td><td><span class="pill '+(CP[l.category]||'p-o')+'">'+l.category+'</span></td><td style="font-weight:600">'+l.hours+'h</td><td style="font-size:11px;color:#9ca3af">'+(l.note||'')+'</td></tr>';}).join('');
+      var wr=Object.entries(d.byWorker).map(function(e){var b=e[1];return '<tr><td style="font-weight:600">'+e[0]+'</td><td>'+(b.asm||'—')+'</td><td>'+(b.weld||'—')+'</td><td>'+(b.lathe||'—')+'</td><td style="font-weight:700;color:#166534">'+b.total+'h</td></tr>';}).join('');
+      detail='<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700">'+d.job.id+' — '+d.job.customer+'</div>'
+        +'<div style="font-size:12px;color:#9ca3af">'+(d.job.description||'')+'　'+(d.job.created_at||'').slice(0,10)+'</div></div>'
+        +'<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">'+boxes+'</div>'
+        +'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">工時明細（'+d.logs.length+' 筆）</div>'
+        +'<div class="card" style="margin-bottom:14px"><div style="overflow:auto"><table class="tbl"><thead><tr><th>日期</th><th>師傅</th><th>工種</th><th>類別</th><th>工時</th><th>備註</th></tr></thead>'
+        +'<tbody>'+(lr||'<tr><td colspan="6" style="text-align:center;padding:1rem;color:#9ca3af">尚無工時</td></tr>')+'</tbody></table></div></div>'
+        +(wr?'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">各師傅貢獻</div>'
+          +'<div class="card"><table class="tbl"><thead><tr><th>師傅</th><th>組裝</th><th>焊接</th><th>車床</th><th>小計</th></tr></thead><tbody>'+wr+'</tbody></table></div>':'');
+    }catch(e){detail='<div style="color:#b91c1c;padding:1rem">查詢失敗：'+e.message+'</div>';}
+  }
+  return '<div style="font-size:15px;font-weight:700;margin-bottom:14px">成本查詢（按機號）</div>'
+    +'<div class="card" style="margin-bottom:14px"><div class="lbl">選擇機號</div><select id="cs" onchange="onCS()">'+jo+'</select></div>'+detail;
+}
+function onCS(){var el=$id('cs');S.fJob=el?.value||'';render('cost');}
+
+// ── 共用表格 ──────────────────────────────────────────────────
+function logTbl(rows,showApprove){
+  if(!rows.length)return '<div style="text-align:center;padding:1.5rem;color:#9ca3af;font-size:13px">無資料</div>';
+  return '<table class="tbl"><thead><tr><th>日期</th><th>師傅</th><th>工種</th><th>機號</th><th>客戶</th><th>類別</th><th>工時</th><th>備註</th><th>狀態</th><th></th></tr></thead><tbody>'
+    +rows.map(function(l){
+      return '<tr>'
+        +'<td style="white-space:nowrap">'+l.date+'</td>'
+        +'<td style="font-weight:600;white-space:nowrap">'+l.worker_name+'</td>'
+        +'<td><span class="pill '+(TP[l.work_type]||'p-a')+'">'+l.work_type+'</span></td>'
+        +'<td style="font-family:monospace;font-size:10px;color:#1a56a0;white-space:nowrap">'+l.job_id+'</td>'
+        +'<td style="white-space:nowrap">'+l.customer+'</td>'
+        +'<td><span class="pill '+(CP[l.category]||'p-o')+'">'+l.category+'</span></td>'
+        +'<td style="font-weight:600;text-align:right;padding-right:12px">'+l.hours+'h</td>'
+        +'<td style="font-size:11px;color:#9ca3af">'+(l.note||'')+'</td>'
+        +'<td><span class="bdg '+(l.status==='approved'?'b-gr':'b-am')+'">'+(l.status==='approved'?'已核准':'待審核')+'</span></td>'
+        +'<td style="white-space:nowrap">'
+        +(showApprove&&l.status==='pending'?'<button class="btn-ok" onclick="approveOne(\''+l.id+'\')" style="margin-right:4px">核准</button>':'')
+        +'<button class="btn-dsm" onclick="delLog(\''+l.id+'\')">刪</button>'
+        +'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ── 啟動 ─────────────────────────────────────────────────────
+(function(){
+  var u=getUser();
+  if(u){S.user=u;S.page=u.role==='worker'?'w-report':(u.role==='boss'?'cost':'logs');}
+  render();
+})();
+</script>
+</body>
+</html>
