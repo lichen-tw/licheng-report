@@ -410,7 +410,7 @@ async function pageDaily(){
     });
 
     h+='<div class="day-block">'
-      +'<div class="day-header" onclick="toggleDay(''+domId+'')" style="cursor:pointer;justify-content:space-between">'
+      +'<div class="day-header" onclick="toggleDay(\''+domId+'\')" style="cursor:pointer;justify-content:space-between">'
       +'<div style="display:flex;align-items:center;gap:8px">'
       +'<span id="arr-'+domId+'" style="font-size:10px;transition:transform .2s;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>'
       +fmtDate(date)
@@ -452,7 +452,7 @@ async function pageDaily(){
   });
 
   // 折疊控制函式（加在 HTML 裡）
-  h+='<script>function toggleDay(id){var el=document.getElementById(id);var arr=document.getElementById("arr-"+id);if(!el)return;var open=el.style.display!=="none";el.style.display=open?"none":"block";if(arr)arr.style.transform=open?"rotate(0deg)":"rotate(90deg)";}<\/script>';
+  
   return h;
 }
 
@@ -790,6 +790,16 @@ async function pageCost(){
       +(wr?'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">各師傅貢獻</div><div class="card"><table class="tbl"><thead><tr><th>師傅</th><th>組裝</th><th>焊接</th><th>車床</th><th>小計</th></tr></thead><tbody>'+wr+'</tbody></table></div>':'');
   }catch(e){h+='<div style="color:#b91c1c;padding:1rem">查詢失敗：'+e.message+'</div>';}
   return h;
+}
+
+// ── 每日總覽折疊 ─────────────────────────────────────────────
+function toggleDay(id){
+  var el=document.getElementById(id);
+  var arr=document.getElementById('arr-'+id);
+  if(!el)return;
+  var open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(arr)arr.style.transform=open?'rotate(0deg)':'rotate(90deg)';
 }
 
 // ── 核銷勾選 ─────────────────────────────────────────────────
