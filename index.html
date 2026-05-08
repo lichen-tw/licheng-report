@@ -368,7 +368,7 @@ async function pageDaily(){
 
   dates.forEach(function(date){
     var dayData=map[date];
-    h+='<div class="day-block"><div class="day-header">'+date;
+    h+='<div class="day-block"><div class="day-header">'+fmtDate(date);
     // 算當天報工人數
     var reportCount=Object.keys(dayData).length;
     h+='<span style="font-size:11px;font-weight:400;color:#9ca3af">'+reportCount+' 人報工</span></div>';
