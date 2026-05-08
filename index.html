@@ -28,7 +28,7 @@ input:focus,select:focus,textarea:focus{border-color:#1a56a0;box-shadow:0 0 0 3p
 .p-a{background:#dbeafe;color:#1e3a8a}.p-w{background:#fef3c7;color:#78350f}
 .p-l{background:#f3e8ff;color:#6b21a8}.p-o{background:#f3f4f6;color:#374151}
 .p-lv{background:#fee2e2;color:#991b1b}.p-rs{background:#e0e7ff;color:#3730a3}
-.p-ds{background:#fce7f3;color:#9d174d}.p-fc{background:#ecfdf5;color:#065f46}
+.p-ds{background:#fce7f3;color:#9d174d}.p-fc{background:#ecfdf5;color:#065f46}.p-ot{background:#fef9c3;color:#713f12}
 .sb{width:118px;min-height:100vh;border-right:1px solid #e5e7eb;background:#f9fafb;flex-shrink:0;padding:8px 0}
 .mi{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:#6b7280;border-left:3px solid transparent;user-select:none}
 .mi:hover{background:#fff}.mi.on{background:#fff;color:#1a56a0;font-weight:600;border-left-color:#1a56a0}
@@ -74,7 +74,7 @@ input:focus,select:focus,textarea:focus{border-color:#1a56a0;box-shadow:0 0 0 3p
 <body>
 <div id="root"></div>
 <script>
-var GAS_URL = 'https://script.google.com/macros/s/AKfycbyj2bTSpe90dNSeq5lis1IyA7fVXQpwRZsIj8ZaQqQSA5KjEUvm_oFqiJcJvV_YAkXk/exec';
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbwui-6LcNje3v0KoSfoRUTZIKwEr_uoVEBCJFY2HLHctmRHdpndk1CZZ97E67zeUmU9og/exec';
 
 async function gas(action,body){
   var res=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(Object.assign({action:action},body||{})),headers:{'Content-Type':'text/plain'}});
@@ -90,14 +90,14 @@ function toast(msg,ms){
 }
 function $id(id){return document.getElementById(id);}
 var TP={組裝:'p-a',焊接:'p-w',車床:'p-l'};
-var CP={組裝:'p-a',焊接:'p-w',車床:'p-l',外出:'p-o',設計:'p-ds',結採:'p-fc',其他:'p-o',請假:'p-lv',排休:'p-rs'};
+var CP={組裝:'p-a',焊接:'p-w',車床:'p-l',出車:'p-o',外出:'p-o',設計:'p-ds',結採:'p-fc',其他:'p-ot',請假:'p-lv',排休:'p-rs'};
 var ALL_CATS=['組裝','焊接','車床','外出','設計','結採','其他','請假','排休'];
-var NO_JOB_CATS=['請假','排休','其他','設計','結採'];
+var NO_JOB_CATS=['請假','排休','其他','設計','結採','出車'];
 
 var S={page:'login',user:null,fJob:'',fWorker:''};
 var C={jobs:null,workers:null};
-var wRows=[{job_id:'',hours:8,category:'一般',note:''}];
-var mRows=[{job_id:'',hours:8,category:'一般',note:''}];
+var wRows=[{job_id:'',hours:8,category:'組裝',note:'',sub_items:[]}];
+var mRows=[{job_id:'',hours:8,category:'組裝',note:'',sub_items:[]}];
 var editLog=null; // 正在編輯的記錄
 
 function getUser(){try{return JSON.parse(localStorage.getItem('lc_u')||'null');}catch{return null;}}
@@ -161,7 +161,7 @@ async function doLogin(){
     bust();render();
   }catch(e){err.textContent=e.message;}
 }
-function doLogout(){clearUser();S.user=null;S.page='login';bust();wRows=[{job_id:'',hours:8,category:'一般',note:''}];mRows=[{job_id:'',hours:8,category:'一般',note:''}];render();}
+function doLogout(){clearUser();S.user=null;S.page='login';bust();wRows=[{job_id:'',hours:8,category:'組裝',note:'',sub_items:[]}];mRows=[{job_id:'',hours:8,category:'組裝',note:'',sub_items:[]}];render();}
 
 // ── 可搜尋下拉元件 ─────────────────────────────────────────────
 function searchSelect(id,jobs,selectedId,onchange){
@@ -272,6 +272,7 @@ async function pageWReport(){
       +'<input type="number" value="'+r.hours+'" step="0.5" min="0.5" max="12" style="font-size:16px;font-weight:700;text-align:center" onchange="setWRow('+i+',\'hours\',parseFloat(this.value)||8)">'
       +'</div></div>'
       +(needJob?'<div style="margin-bottom:8px"><div class="lbl">機號</div>'+searchSelect('wr-'+i,jlist,r.job_id,'function(v){setWRow('+i+',\'job_id\',v);}')+'</div>':'')
+      +(r.category==='出車'?renderSubItems('wr',i,r.sub_items||[],jlist):'')
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
       +'<div style="flex:1"><div class="lbl">備註（選填）</div><input type="text" value="'+(r.note||'')+'" placeholder="如：試運轉" onchange="setWRow('+i+',\'note\',this.value)"></div>'
       +(wRows.length>1?'<button class="btn-dsm" style="margin-bottom:1px" onclick="removeWRow('+i+')">移除</button>':'')
@@ -307,7 +308,36 @@ async function pageWReport(){
 }
 
 function setWRow(i,key,val){if(wRows[i])wRows[i][key]=val;}
-function addWRow(){wRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
+function addSubItem(prefix,rowIdx){
+  if(prefix==='wr'){if(!wRows[rowIdx].sub_items)wRows[rowIdx].sub_items=[];wRows[rowIdx].sub_items.push({job_id:'',hours:0,note:''});}
+  else{if(!mRows[rowIdx].sub_items)mRows[rowIdx].sub_items=[];mRows[rowIdx].sub_items.push({job_id:'',hours:0,note:''});}
+  loadPage();
+}
+function removeSubItem(prefix,rowIdx,subIdx){
+  if(prefix==='wr')wRows[rowIdx].sub_items.splice(subIdx,1);
+  else mRows[rowIdx].sub_items.splice(subIdx,1);
+  loadPage();
+}
+function setSubItem(prefix,rowIdx,subIdx,key,val){
+  var arr=prefix==='wr'?wRows[rowIdx].sub_items:mRows[rowIdx].sub_items;
+  if(arr&&arr[subIdx])arr[subIdx][key]=val;
+}
+function renderSubItems(prefix,rowIdx,subs,jlist){
+  var h='<div style="margin-bottom:8px;padding:10px;background:#f0f7ff;border-radius:8px;border:1px solid #bfdbfe">'
+    +'<div style="font-size:12px;font-weight:600;color:#1a56a0;margin-bottom:8px">出車機號分配（各機號工時）</div>';
+  subs.forEach(function(sub,si){
+    h+='<div style="display:grid;grid-template-columns:1fr 70px auto;gap:6px;margin-bottom:6px;align-items:center">'
+      +searchSelect(prefix+'-sub-'+rowIdx+'-'+si,jlist,sub.job_id,'function(v){setSubItem(\''+prefix+'\','+rowIdx+','+si+',\'job_id\',v);}')+
+      '<input type="number" value="'+(sub.hours||'')+'" placeholder="時數" min="0" max="12" step="0.5" style="text-align:center;font-weight:600" onchange="setSubItem(\''+prefix+'\','+rowIdx+','+si+',\'hours\',parseFloat(this.value)||0)">'
+      +'<button class="btn-dsm" onclick="removeSubItem(\''+prefix+'\','+rowIdx+','+si+')">✕</button>'
+      +'</div>';
+  });
+  h+='<button onclick="addSubItem(\''+prefix+'\','+rowIdx+')" style="font-size:12px;color:#1a56a0;background:transparent;border:1px dashed #93c5fd;border-radius:6px;padding:4px 10px;cursor:pointer;width:100%">＋ 新增機號</button>'
+    +'<div style="font-size:11px;color:#9ca3af;margin-top:6px">各機號工時合計應等於上方總工時</div>'
+    +'</div>';
+  return h;
+}
+function addWRow(){wRows.push({job_id:'',hours:8,category:'組裝',note:'',sub_items:[]});loadPage();}
 function removeWRow(i){wRows.splice(i,1);if(!wRows.length)wRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
 function reloadWRows(){loadPage();}
 
@@ -327,7 +357,7 @@ async function submitWReport(){
   if(!valid.length){toast('請至少填一筆完整的報工資料');return;}
   var btn=$id('w-submit');if(btn){btn.disabled=true;btn.textContent='送出中...';}
   try{
-    var logs=valid.map(function(r){return {date:today(),worker_id:S.user.id,job_id:r.job_id||'',category:r.category,hours:r.hours,note:r.note||'',submitted_by:S.user.id,submitted_by_role:'worker'};});
+    var logs=valid.map(function(r){return {date:today(),worker_id:S.user.id,job_id:r.job_id||'',category:r.category,hours:r.hours,note:r.note||'',sub_items:r.sub_items||[],submitted_by:S.user.id,submitted_by_role:'worker'};});
     var res=await gas('addLogs',{logs:logs});
     if(res.errors&&res.errors.length)toast('部分失敗：'+res.errors.join('、'),4000);
     else toast('✓ 報工已送出 '+res.count+' 筆！');
@@ -364,15 +394,31 @@ async function pageDaily(){
   if(!dates.length) return '<div style="font-size:15px;font-weight:700;margin-bottom:14px">每日工時總覽</div><div class="card" style="text-align:center;padding:2rem;color:#9ca3af">近14天無資料</div>';
 
   var h='<div style="font-size:15px;font-weight:700;margin-bottom:6px">每日工時總覽</div>'
-    +'<div style="font-size:12px;color:#9ca3af;margin-bottom:14px">近 14 天 · 工時 < 8h 標紅（請假/排休除外）</div>';
+    +'<div style="font-size:12px;color:#9ca3af;margin-bottom:14px">近 14 天 · 點日期展開 · 工時 < 8h 標紅（請假/排休除外）</div>';
 
-  dates.forEach(function(date){
+  dates.forEach(function(date,di){
     var dayData=map[date];
-    h+='<div class="day-block"><div class="day-header">'+fmtDate(date);
-    // 算當天報工人數
     var reportCount=Object.keys(dayData).length;
-    h+='<span style="font-size:11px;font-weight:400;color:#9ca3af">'+reportCount+' 人報工</span></div>';
-    h+='<div class="day-body">';
+    var isOpen=di===0; // 預設只展開最新一天
+    var domId='day-'+date.replace(/-/g,'');
+
+    // 計算當天整體狀態
+    var hasWarn=false;
+    workers.forEach(function(w){
+      var wd=dayData[w.id]||null;
+      if(wd&&!wd.leave&&!wd.rest&&wd.hours<8) hasWarn=true;
+    });
+
+    h+='<div class="day-block">'
+      +'<div class="day-header" onclick="toggleDay(''+domId+'')" style="cursor:pointer;justify-content:space-between">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span id="arr-'+domId+'" style="font-size:10px;transition:transform .2s;display:inline-block;transform:'+(isOpen?'rotate(90deg)':'rotate(0deg)')+'">▶</span>'
+      +fmtDate(date)
+      +(hasWarn?'<span style="font-size:11px;color:#dc2626">⚠ 有異常</span>':'<span style="font-size:11px;color:#16a34a">✓</span>')
+      +'</div>'
+      +'<span style="font-size:11px;font-weight:400;color:#9ca3af">'+reportCount+' 人報工</span>'
+      +'</div>'
+      +'<div class="day-body" id="'+domId+'" style="display:'+(isOpen?'block':'none')+'">';
 
     workers.forEach(function(w){
       var wd=dayData[w.id]||null;
@@ -381,30 +427,32 @@ async function pageDaily(){
       var isRest=wd&&wd.rest;
       var isOk=isLeave||isRest||(h8>=8);
       var noReport=!wd;
-
+      var hasChecked=wd&&wd.checkedCount>0;
       var barColor=isOk?'#16a34a':(h8>0?'#f59e0b':'#e5e7eb');
       var pct=Math.min(100,(h8/8)*100);
 
       h+='<div class="worker-row">'
-        +'<div style="font-size:13px;font-weight:600;min-width:56px">'+w.name+'</div>'
-        +'<span class="pill '+(TP[w.work_type]||'p-a')+'" style="flex-shrink:0">'+w.work_type+'</span>';
+        +'<div style="font-size:13px;font-weight:600;min-width:56px">'+w.name+'</div>';
 
       if(noReport){
         h+='<span style="font-size:12px;color:#d1d5db">未報工</span>';
       } else if(isLeave){
         h+='<span class="bdg b-rd">請假</span>';
-        if(h8>0&&!isLeave) h+='<span style="font-size:12px;font-weight:600;color:#1a56a0;margin-left:4px">'+h8+'h</span>';
       } else if(isRest){
         h+='<span class="bdg" style="background:#e0e7ff;color:#3730a3">排休</span>';
       } else {
         h+='<div class="hour-bar"><div class="hour-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>';
         h+='<span style="font-size:13px;font-weight:600;color:'+(isOk?'#166534':'#dc2626')+'">'+h8+'h</span>';
         if(!isOk) h+='<span style="font-size:11px;color:#dc2626">⚠ 不足8h</span>';
+        if(hasChecked) h+='<span style="font-size:13px;color:#166534" title="有核銷記錄">✓</span>';
       }
       h+='</div>';
     });
     h+='</div></div>';
   });
+
+  // 折疊控制函式（加在 HTML 裡）
+  h+='<script>function toggleDay(id){var el=document.getElementById(id);var arr=document.getElementById("arr-"+id);if(!el)return;var open=el.style.display!=="none";el.style.display=open?"none":"block";if(arr)arr.style.transform=open?"rotate(0deg)":"rotate(90deg)";}<\/script>';
   return h;
 }
 
@@ -427,6 +475,7 @@ async function pageReportMgr(){
       +'<input type="number" value="'+r.hours+'" step="0.5" min="0.5" max="12" style="font-size:15px;font-weight:700;text-align:center" onchange="setMRow('+i+',\'hours\',parseFloat(this.value)||8)">'
       +'</div></div>'
       +(needJob?'<div style="margin-bottom:8px"><div class="lbl">機號</div>'+searchSelect('mr-'+i,jlist,r.job_id,'function(v){setMRow('+i+',\'job_id\',v);}')+'</div>':'')
+      +(r.category==='出車'?renderSubItems('mr',i,r.sub_items||[],jlist):'')
       +'<div style="display:flex;gap:8px;align-items:flex-end">'
       +'<div style="flex:1"><div class="lbl">備註（選填）</div><input type="text" value="'+(r.note||'')+'" placeholder="選填" onchange="setMRow('+i+',\'note\',this.value)"></div>'
       +(mRows.length>1?'<button class="btn-dsm" style="margin-bottom:1px" onclick="removeMRow('+i+')">移除</button>':'')
@@ -451,7 +500,7 @@ async function pageReportMgr(){
 }
 
 function setMRow(i,key,val){if(mRows[i])mRows[i][key]=val;}
-function addMRow(){mRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
+function addMRow(){mRows.push({job_id:'',hours:8,category:'組裝',note:'',sub_items:[]});loadPage();}
 function removeMRow(i){mRows.splice(i,1);if(!mRows.length)mRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
 function reloadMRows(){loadPage();}
 
@@ -470,7 +519,7 @@ async function submitMgr(){
   if(!valid.length){toast('請至少填一筆完整資料');return;}
   var btn=$id('m-submit');if(btn){btn.disabled=true;btn.textContent='送出中...';}
   try{
-    var logs=valid.map(function(r){return {date:date,worker_id:wid,job_id:r.job_id||'',category:r.category,hours:r.hours,note:r.note||'',submitted_by:S.user.id,submitted_by_role:'admin'};});
+    var logs=valid.map(function(r){return {date:date,worker_id:wid,job_id:r.job_id||'',category:r.category,hours:r.hours,note:r.note||'',sub_items:r.sub_items||[],submitted_by:S.user.id,submitted_by_role:'admin'};});
     var res=await gas('addLogs',{logs:logs});
     if(res.errors&&res.errors.length)toast('部分失敗：'+res.errors.join('、'),4000);
     else toast('✓ 已送出 '+res.count+' 筆');
@@ -692,10 +741,10 @@ async function pageCost(){
       {l:'組裝工時',tot:s.asm,chk:ck.asm,bg:'#dbeafe',tc:'#1e3a8a'},
       {l:'焊接工時',tot:s.weld,chk:ck.weld,bg:'#fef3c7',tc:'#78350f'},
       {l:'車床工時',tot:s.lathe,chk:ck.lathe,bg:'#f3e8ff',tc:'#6b21a8'},
-      {l:'出車工時',tot:s.out||0,chk:ck.out||0,bg:'#fef9c3',tc:'#854d0e'},
+      {l:'出車工時',tot:s.out||0,chk:ck.out||0,bg:'#fff7ed',tc:'#9a3412'},
+      {l:'其他工時',tot:s.other||0,chk:ck.other||0,bg:'#fef9c3',tc:'#713f12'},
       {l:'設計工時',tot:s.design||0,chk:ck.design||0,bg:'#fce7f3',tc:'#9d174d'},
       {l:'結採工時',tot:s.final_c||0,chk:ck.final_c||0,bg:'#ecfdf5',tc:'#065f46'},
-      {l:'合計工時',tot:s.total,chk:ck.total,bg:'#f0fdf4',tc:'#166634'}
     ];
     var boxes=boxDefs.map(function(b){
       return '<div class="cb" style="background:'+b.bg+';min-width:100px">'
