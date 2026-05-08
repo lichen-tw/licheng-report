@@ -28,6 +28,7 @@ input:focus,select:focus,textarea:focus{border-color:#1a56a0;box-shadow:0 0 0 3p
 .p-a{background:#dbeafe;color:#1e3a8a}.p-w{background:#fef3c7;color:#78350f}
 .p-l{background:#f3e8ff;color:#6b21a8}.p-o{background:#f3f4f6;color:#374151}
 .p-lv{background:#fee2e2;color:#991b1b}.p-rs{background:#e0e7ff;color:#3730a3}
+.p-ds{background:#fce7f3;color:#9d174d}.p-fc{background:#ecfdf5;color:#065f46}
 .sb{width:118px;min-height:100vh;border-right:1px solid #e5e7eb;background:#f9fafb;flex-shrink:0;padding:8px 0}
 .mi{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:#6b7280;border-left:3px solid transparent;user-select:none}
 .mi:hover{background:#fff}.mi.on{background:#fff;color:#1a56a0;font-weight:600;border-left-color:#1a56a0}
@@ -89,9 +90,9 @@ function toast(msg,ms){
 }
 function $id(id){return document.getElementById(id);}
 var TP={組裝:'p-a',焊接:'p-w',車床:'p-l'};
-var CP={一般:'p-a',外出:'p-o',其他:'p-o',請假:'p-lv',排休:'p-rs'};
-var ALL_CATS=['一般','外出','其他','請假','排休'];
-var NO_JOB_CATS=['請假','排休','其他'];
+var CP={組裝:'p-a',焊接:'p-w',車床:'p-l',外出:'p-o',設計:'p-ds',結採:'p-fc',其他:'p-o',請假:'p-lv',排休:'p-rs'};
+var ALL_CATS=['組裝','焊接','車床','外出','設計','結採','其他','請假','排休'];
+var NO_JOB_CATS=['請假','排休','其他','設計','結採'];
 
 var S={page:'login',user:null,fJob:'',fWorker:''};
 var C={jobs:null,workers:null};
@@ -503,7 +504,43 @@ function openEdit(logJson){
   editLog=JSON.parse(decodeURIComponent(logJson));
   loadPage();
 }
-function closeEdit(){editLog=null;loadPage();}
+function closeEdit(){
+  editLog=null;
+  var modal=$id('edit-modal');if(modal)modal.remove();
+}
+
+// 日期格式：統一輸出 YYYY/M/D(週)
+var WEEKDAYS=['日','一','二','三','四','五','六'];
+function fmtDate(d){
+  if(!d) return '';
+  var s=String(d),dt;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)){
+    var parts=s.split('-');
+    dt=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+  } else if(s.includes('T')||s.includes('Z')){
+    var tmp=new Date(s);
+    if(isNaN(tmp.getTime())) return s;
+    // 轉台灣時間
+    dt=new Date(tmp.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+  } else {
+    return s.slice(0,10);
+  }
+  var y=dt.getFullYear(),m=dt.getMonth()+1,day=dt.getDate(),w=WEEKDAYS[dt.getDay()];
+  return y+'/'+m+'/'+day+'('+w+')';
+}
+// 給 input[type=date] 用的純 YYYY-MM-DD
+function fmtDateISO(d){
+  if(!d) return '';
+  var s=String(d);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  if(s.includes('T')||s.includes('Z')){
+    var tmp=new Date(s);
+    if(isNaN(tmp.getTime())) return s;
+    var dt2=new Date(tmp.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    return dt2.getFullYear()+'-'+p2(dt2.getMonth()+1)+'-'+p2(dt2.getDate());
+  }
+  return s.slice(0,10);
+}
 
 async function showEditModal(){
   var l=editLog;
@@ -650,19 +687,69 @@ async function pageCost(){
   if(!S.fJob){return h+'<div style="text-align:center;padding:2rem;color:#9ca3af">請選擇機號</div>';}
   try{
     var d=await gas('getCost',{job_id:S.fJob});var s=d.summary;
-    var boxes=[{l:'組裝工時',v:s.asm,bg:'#dbeafe',tc:'#1e3a8a'},{l:'焊接工時',v:s.weld,bg:'#fef3c7',tc:'#78350f'},{l:'車床工時',v:s.lathe,bg:'#f3e8ff',tc:'#6b21a8'},{l:'合計工時',v:s.total,bg:'#f0fdf4',tc:'#166534'}]
-      .map(function(b){return '<div class="cb" style="background:'+b.bg+'"><div style="font-size:11px;color:'+b.tc+';margin-bottom:4px">'+b.l+'</div><div style="font-size:24px;font-weight:700;color:'+b.tc+'">'+b.v+'h</div></div>';}).join('');
-    var lr=d.logs.map(function(l){return '<tr><td style="white-space:nowrap">'+l.date+'</td><td style="font-weight:600">'+l.worker_name+'</td><td><span class="pill '+(TP[l.work_type]||'p-a')+'">'+l.work_type+'</span></td><td><span class="pill '+(CP[l.category]||'p-o')+'">'+l.category+'</span></td><td style="font-weight:600">'+l.hours+'h</td><td style="font-size:11px;color:#9ca3af">'+(l.note||'')+'</td></tr>';}).join('');
-    var wr=Object.entries(d.byWorker).map(function(e){var b=e[1];return '<tr><td style="font-weight:600">'+e[0]+'</td><td>'+(b.asm||'—')+'</td><td>'+(b.weld||'—')+'</td><td>'+(b.lathe||'—')+'</td><td style="font-weight:700;color:#166534">'+b.total+'h</td></tr>';}).join('');
+    var ck=d.checked||{asm:0,weld:0,lathe:0,out:0,total:0};
+    var boxDefs=[
+      {l:'組裝工時',tot:s.asm,chk:ck.asm,bg:'#dbeafe',tc:'#1e3a8a'},
+      {l:'焊接工時',tot:s.weld,chk:ck.weld,bg:'#fef3c7',tc:'#78350f'},
+      {l:'車床工時',tot:s.lathe,chk:ck.lathe,bg:'#f3e8ff',tc:'#6b21a8'},
+      {l:'出車工時',tot:s.out||0,chk:ck.out||0,bg:'#fef9c3',tc:'#854d0e'},
+      {l:'設計工時',tot:s.design||0,chk:ck.design||0,bg:'#fce7f3',tc:'#9d174d'},
+      {l:'結採工時',tot:s.final_c||0,chk:ck.final_c||0,bg:'#ecfdf5',tc:'#065f46'},
+      {l:'合計工時',tot:s.total,chk:ck.total,bg:'#f0fdf4',tc:'#166634'}
+    ];
+    var boxes=boxDefs.map(function(b){
+      return '<div class="cb" style="background:'+b.bg+';min-width:100px">'
+        +'<div style="font-size:11px;color:'+b.tc+';margin-bottom:6px;font-weight:500">'+b.l+'</div>'
+        +'<div style="font-size:20px;font-weight:700;color:'+b.tc+'">'+b.tot+'h</div>'
+        +'<div style="font-size:11px;color:'+b.tc+';opacity:.7;margin-top:4px;border-top:1px solid rgba(0,0,0,.06);padding-top:4px">'
+        +'核銷 <strong>'+b.chk+'h</strong></div>'
+        +'</div>';
+    }).join('');
+    // 核銷提示
+    var uncheckedCount=d.logs.filter(function(l){return l.tag==='未核銷';}).length;
+    var tagSummary=uncheckedCount>0
+      ?'<div style="padding:8px 12px;background:#fff7ed;border-radius:8px;margin-bottom:12px;font-size:12px;color:#9a3412">⚠ 有 '+uncheckedCount+' 筆標記為「未核銷」，工時合計不含這些筆</div>'
+      :'';
+    var lr=d.logs.map(function(l){
+      var isChecked=(l.tag==='核銷'||l.tag===''||l.tag===null);
+      var tagBtn='<label style="display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none">'
+        +'<input type="checkbox" '+(isChecked?'checked':'')+' onchange="setTag(\''+l.id+'\',this.checked?\'核銷\':\'未核銷\')" style="width:16px;height:16px;cursor:pointer;accent-color:#1a56a0">'
+        +'<span style="font-size:11px;color:'+(isChecked?'#166534':'#9ca3af')+';font-weight:'+(isChecked?'500':'400')+'">'+( isChecked?'核銷':'未核銷')+'</span>'
+        +'</label>';
+      var rowStyle=isChecked?'':' style="opacity:.45"';
+      return '<tr'+rowStyle+'><td style="white-space:nowrap">'+fmtDate(l.date)+'</td><td style="font-weight:600">'+l.worker_name+'</td><td><span class="pill '+(TP[l.work_type]||'p-a')+'">'+l.work_type+'</span></td><td><span class="pill '+(CP[l.category]||'p-o')+'">'+l.category+'</span></td><td style="font-weight:600">'+l.hours+'h</td><td style="font-size:11px;color:#9ca3af">'+(l.note||'')+'</td><td>'+tagBtn+'</td></tr>';
+    }).join('');
+    var wr=Object.entries(d.byWorker).map(function(e){
+      var b=e[1];
+      return '<tr>'
+        +'<td style="font-weight:600">'+e[0]+'</td>'
+        +'<td>'+(b.asm?b.asm+'h':'—')+'</td>'
+        +'<td>'+(b.weld?b.weld+'h':'—')+'</td>'
+        +'<td>'+(b.lathe?b.lathe+'h':'—')+'</td>'
+        +'<td>'+(b.out?b.out+'h':'—')+'</td>'
+        +'<td>'+(b.design?b.design+'h':'—')+'</td>'
+        +'<td>'+(b.final_c?b.final_c+'h':'—')+'</td>'
+        +'<td style="font-weight:700;color:#166534">'+b.total+'h</td></tr>';
+    }).join('');
     h+='<div style="margin-bottom:12px"><div style="font-size:14px;font-weight:700">'+d.job.id+' — '+d.job.customer+'</div>'
       +'<div style="font-size:12px;color:#9ca3af">'+(d.job.description||'')+'　'+(d.job.created_at||'').slice(0,10)+'</div></div>'
       +'<div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">'+boxes+'</div>'
-      +'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">工時明細</div>'
-      +'<div class="card" style="margin-bottom:14px"><div style="overflow:auto"><table class="tbl"><thead><tr><th>日期</th><th>師傅</th><th>工種</th><th>類別</th><th>工時</th><th>備註</th></tr></thead>'
-      +'<tbody>'+(lr||'<tr><td colspan="6" style="text-align:center;padding:1rem;color:#9ca3af">尚無工時</td></tr>')+'</tbody></table></div></div>'
+      +tagSummary
+      +'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">工時明細 <span style="font-size:11px;font-weight:400;color:#9ca3af">（點擊「出機前」或「售後追加」標記每一筆）</span></div>'
+      +'<div class="card" style="margin-bottom:14px"><div style="overflow:auto"><table class="tbl"><thead><tr><th>日期</th><th>師傅</th><th>工種</th><th>類別</th><th>工時</th><th>備註</th><th>標記</th></tr></thead>'
+      +'<tbody>'+(lr||'<tr><td colspan="7" style="text-align:center;padding:1rem;color:#9ca3af">尚無工時</td></tr>')+'</tbody></table></div></div>'
       +(wr?'<div style="font-size:13px;font-weight:600;color:#6b7280;margin-bottom:8px">各師傅貢獻</div><div class="card"><table class="tbl"><thead><tr><th>師傅</th><th>組裝</th><th>焊接</th><th>車床</th><th>小計</th></tr></thead><tbody>'+wr+'</tbody></table></div>':'');
   }catch(e){h+='<div style="color:#b91c1c;padding:1rem">查詢失敗：'+e.message+'</div>';}
   return h;
+}
+
+// ── 核銷勾選 ─────────────────────────────────────────────────
+async function setTag(id, tag){
+  try{
+    await gas('setTag',{id:id,tag:tag});
+    // 更新 cache 裡的 tag（不重新 load 整頁，快一點）
+    render('cost');
+  }catch(e){toast('❌ '+e.message);}
 }
 
 // ── 啟動 ─────────────────────────────────────────────────────
