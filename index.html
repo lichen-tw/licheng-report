@@ -94,10 +94,11 @@ var CP={組裝:'p-a',焊接:'p-w',車床:'p-l',出車:'p-o',外出:'p-o',設計:
 var ALL_CATS=['組裝','焊接','車床','出車','設計','結採','其他','請假','排休'];
 var NO_JOB_CATS=['請假','排休','其他','設計','結採','出車'];
 
-var S={page:'login',user:null,fJob:'',fWorker:''};
+var S={page:'login',user:null,fJob:'',fWorker:'',dailyFrom:'',dailyTo:''};
 var C={jobs:null,workers:null};
 var wRows=[{job_id:'',hours:8,category:'組裝',note:'',sub_items:[]}];
 var mRows=[{job_id:'',hours:8,category:'組裝',note:'',sub_items:[]}];
+var mState={worker:'',date:''};  // 記住生管代填的師傅和日期
 var editLog=null; // 正在編輯的記錄
 
 function getUser(){try{return JSON.parse(localStorage.getItem('lc_u')||'null');}catch{return null;}}
@@ -391,10 +392,22 @@ async function pageDaily(){
   var map=d.data, workers=d.workers;
   var dates=Object.keys(map).sort().reverse();
 
-  if(!dates.length) return '<div style="font-size:15px;font-weight:700;margin-bottom:14px">每日工時總覽</div><div class="card" style="text-align:center;padding:2rem;color:#9ca3af">近14天無資料</div>';
+  // 套用日期篩選
+  if(S.dailyFrom) dates=dates.filter(function(d){return d>=S.dailyFrom;});
+  if(S.dailyTo)   dates=dates.filter(function(d){return d<=S.dailyTo;});
+
+  var filterHtml='<div class="card" style="margin-bottom:12px">'
+    +'<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">'
+    +'<div><div class="lbl">開始日期</div><input type="date" id="df-from" value="'+(S.dailyFrom||'')+'" onchange="S.dailyFrom=this.value;loadPage()" style="width:150px"></div>'
+    +'<div><div class="lbl">結束日期</div><input type="date" id="df-to" value="'+(S.dailyTo||'')+'" onchange="S.dailyTo=this.value;loadPage()" style="width:150px"></div>'
+    +(S.dailyFrom||S.dailyTo?'<button class="btn btn-g" style="font-size:12px;padding:6px 12px" onclick="S.dailyFrom=\'\';S.dailyTo=\'\';loadPage()">清除</button>':'')
+    +'</div></div>';
+
+  if(!dates.length) return '<div style="font-size:15px;font-weight:700;margin-bottom:14px">每日工時總覽</div>'+filterHtml+'<div class="card" style="text-align:center;padding:2rem;color:#9ca3af">此區間無資料</div>';
 
   var h='<div style="font-size:15px;font-weight:700;margin-bottom:6px">每日工時總覽</div>'
-    +'<div style="font-size:12px;color:#9ca3af;margin-bottom:14px">近 14 天 · 點日期展開 · 工時 < 8h 標紅（請假/排休除外）</div>';
+    +'<div style="font-size:12px;color:#9ca3af;margin-bottom:10px">點日期展開 · 工時 < 8h 標紅（請假/排休除外）</div>'
+    +filterHtml;
 
   dates.forEach(function(date,di){
     var dayData=map[date];
@@ -487,8 +500,8 @@ async function pageReportMgr(){
   return '<div style="font-size:15px;font-weight:700;margin-bottom:14px">代填報工</div>'
     +'<div class="card">'
     +'<div class="g2" style="margin-bottom:14px">'
-    +'<div><div class="lbl">日期</div><input type="date" id="m-date" value="'+today()+'"></div>'
-    +'<div><div class="lbl">師傅</div><select id="m-worker">'+wo+'</select></div>'
+    +'<div><div class="lbl">日期</div><input type="date" id="m-date" value="'+(mState.date||today())+'" onchange="mState.date=this.value"></div>'
+    +'<div><div class="lbl">師傅</div><select id="m-worker" onchange="mState.worker=this.value">'+wo+'</select></div>'
     +'</div>'
     +'<div id="m-rows">'+rowsHtml+'</div>'
     +'<div class="add-row-btn" onclick="addMRow()">＋ 新增一筆</div>'
@@ -500,9 +513,20 @@ async function pageReportMgr(){
 }
 
 function setMRow(i,key,val){if(mRows[i])mRows[i][key]=val;}
-function addMRow(){mRows.push({job_id:'',hours:8,category:'組裝',note:'',sub_items:[]});loadPage();}
+function addMRow(){
+  var w=$id('m-worker'),d=$id('m-date');
+  if(w)mState.worker=w.value;
+  if(d)mState.date=d.value;
+  mRows.push({job_id:'',hours:8,category:'組裝',note:'',sub_items:[]});
+  loadPage();
+}
 function removeMRow(i){mRows.splice(i,1);if(!mRows.length)mRows.push({job_id:'',hours:8,category:'一般',note:''});loadPage();}
-function reloadMRows(){loadPage();}
+function reloadMRows(){
+  var w=$id('m-worker'),d=$id('m-date');
+  if(w)mState.worker=w.value;
+  if(d)mState.date=d.value;
+  loadPage();
+}
 
 async function submitMgr(){
   var date=$id('m-date').value,wid=$id('m-worker').value;
@@ -643,7 +667,7 @@ async function pageLogs(){
     +'<select style="font-size:12px;padding:4px 8px;width:auto" id="fj" onchange="doF()">'+jo+'</select>'
     +(S.fWorker||S.fJob?'<button class="btn btn-g" style="font-size:12px;padding:4px 10px" onclick="clearF()">清除</button>':'')
     +'</div>'
-    +'<div class="card"><div style="overflow:auto">'+logTbl(logList,false,false)+'</div></div>';
+    +'<div class="card"><div style="overflow:auto">'+logTbl(logList,false,true)+'</div></div>';
 }
 function doF(){S.fWorker=($id('fw')||{}).value||'';S.fJob=($id('fj')||{}).value||'';render('logs');}
 function clearF(){S.fWorker='';S.fJob='';render('logs');}
@@ -665,7 +689,7 @@ function logTbl(rows,showApprove,showEdit){
         +'<td style="font-size:11px;color:#9ca3af;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.note||'')+'</td>'
         +'<td><span class="bdg '+(l.status==='approved'?'b-gr':'b-am')+'">'+(l.status==='approved'?'已核准':'待審核')+'</span></td>'
         +'<td style="white-space:nowrap;display:flex;gap:3px;align-items:center">'
-        +(showEdit&&l.status==='pending'?'<button class="btn-edit" onclick="openEdit(\''+logJson+'\')">編輯</button>':'')
+        +(showEdit?'<button class="btn-edit" onclick="openEdit(\''+logJson+'\')">編輯</button>':'')
         +(showApprove&&l.status==='pending'?'<button class="btn-ok" onclick="approveOne(\''+l.id+'\')">核准</button>':'')
         +'<button class="btn-dsm" onclick="delLog(\''+l.id+'\')">刪</button>'
         +'</td></tr>';
