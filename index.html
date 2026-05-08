@@ -390,7 +390,7 @@ async function pageWHistory(){
 async function pageDaily(){
   var d=await gas('getDailySum',{days:14});
   var map=d.data, workers=d.workers;
-  var dates=Object.keys(map).sort().reverse();
+  var dates=Object.keys(map).sort(function(a,b){return String(b).localeCompare(String(a));});
 
   // 套用日期篩選
   if(S.dailyFrom) dates=dates.filter(function(d){return d>=S.dailyFrom;});
