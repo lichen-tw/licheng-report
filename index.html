@@ -706,12 +706,12 @@ async function pageCost(){
         +'</div>';
     }).join('');
     // 核銷提示
-    var uncheckedCount=d.logs.filter(function(l){return l.tag==='未核銷';}).length;
+    var uncheckedCount=d.logs.filter(function(l){return l.tag!=='核銷';}).length;
     var tagSummary=uncheckedCount>0
       ?'<div style="padding:8px 12px;background:#fff7ed;border-radius:8px;margin-bottom:12px;font-size:12px;color:#9a3412">⚠ 有 '+uncheckedCount+' 筆標記為「未核銷」，工時合計不含這些筆</div>'
       :'';
     var lr=d.logs.map(function(l){
-      var isChecked=(l.tag==='核銷'||l.tag===''||l.tag===null);
+      var isChecked=(l.tag==='核銷');
       var tagBtn='<label style="display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none">'
         +'<input type="checkbox" '+(isChecked?'checked':'')+' onchange="setTag(\''+l.id+'\',this.checked?\'核銷\':\'未核銷\')" style="width:16px;height:16px;cursor:pointer;accent-color:#1a56a0">'
         +'<span style="font-size:11px;color:'+(isChecked?'#166534':'#9ca3af')+';font-weight:'+(isChecked?'500':'400')+'">'+( isChecked?'核銷':'未核銷')+'</span>'
